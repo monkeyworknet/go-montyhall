@@ -22,7 +22,7 @@ func main() {
 	workercount := 5
 
 	commLineArgs := os.Args[1:]
-	if len(commLineArgs) >= 2 {
+	if len(commLineArgs) == 2 {
 		argSim := os.Args[1]
 		argWrk := os.Args[2]
 		simulations, _ = strconv.Atoi(argSim)
@@ -32,9 +32,10 @@ func main() {
 	results := make(chan int, simulations)
 
 	swap := true
-	var Correct int
 
+	// we have two cases to test for, one where the person swapped doors and again when they didn't
 	for c := 1; c <= 2; c++ {
+		correct := 0
 		now := time.Now()
 		fmt.Printf("Running Please Wait.. Using %v Workers\n", workercount)
 		for w := 1; w <= workercount; w++ {
@@ -48,7 +49,7 @@ func main() {
 		close(jobs)
 
 		for r := 1; r <= simulations; r++ {
-			Correct = Correct + <-results
+			correct = correct + <-results
 			//fmt.Println(<-results)
 		}
 
@@ -56,13 +57,13 @@ func main() {
 
 		fmt.Printf("Did these people swap? %v. \n", swap)
 		fmt.Printf("Ran %v Simulations.  Took %.2v seconds\n", simulations, timesince)
-		fmt.Printf("They won %v percentage of the time \n\n", PercentOf(Correct, simulations))
+		fmt.Printf("They won %v percentage of the time \n\n", PercentOf(correct, simulations))
 		// re-run simulation again where the person didn't swap
 		close(results)
 		swap = false
 		jobs = make(chan int, simulations)
 		results = make(chan int, simulations)
-		Correct = 0
+
 	}
 
 }
@@ -73,7 +74,17 @@ func sim(id int, jobs <-chan int, s bool, results chan<- int) {
 		doors := []int{0, 0, 0}
 		doors[winner] = 1
 		selected := rand.Intn(3)
-		if s == true {
+
+		/*
+			at this point doors likely looks something like this:   doors := []int{1,0,0}
+			the winner has been selected as door[0]
+			maybe the randomly selected door by the player is door[1]
+			we are going to then assume that door[2] has been opened and shown to the player as garbage.
+			we no longer have to consider that doorin the future.
+		*/
+
+		switch swap := s; swap {
+		case true:
 			// if we swap doors and our initially selected door was a loser than we return a winning 1
 			if doors[selected] == 0 {
 				results <- 1
@@ -82,9 +93,10 @@ func sim(id int, jobs <-chan int, s bool, results chan<- int) {
 				//fmt.Println("loser")
 				results <- 0
 			}
-		} else {
+
+		case false:
+			// if we did not swap and the player did not select the winner then they lose.
 			if doors[selected] == 0 {
-				// if we did not swap and the player did not select the winner then they lose.
 				results <- 0
 				//fmt.Println("loser")
 			} else {
@@ -92,7 +104,9 @@ func sim(id int, jobs <-chan int, s bool, results chan<- int) {
 				results <- 1
 
 			}
+
 		}
+
 	}
 }
 
