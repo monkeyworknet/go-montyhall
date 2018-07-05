@@ -14,7 +14,7 @@ func main() {
 	fmt.Println(` 
 		The Monty Hall Problem Simulation!
 		You can specify the number of simulations and number of workers in command line via:
-		>program.exe 100 5   (100 simulations, 5 workers)
+		:>program.exe 100 5   (100 simulations, 5 workers)
 		
 		`)
 
